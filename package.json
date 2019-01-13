@@ -1,5 +1,5 @@
 {
-  "name": "myapp",
+  "name": "webapi-hw1-client",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
