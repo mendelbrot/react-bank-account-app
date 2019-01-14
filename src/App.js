@@ -6,20 +6,22 @@ const fetchService = {
   getAll(callback, errorCallback) {
     const URL = BASE_URL;
 
-    fetch(URL).then(response => response.json())
-      .then((data) => callback(data))
-      .catch((error) => errorCallback(error));
+    fetch(URL)
+    .then(response => response.json())
+    .then((responseJSON) => {
+      if (typeof callback === 'function'){
+        callback(responseJSON);
+      };
+    })
+    .catch((errorJSON) => {
+      if (typeof errorCallback === 'function') {
+        errorCallback(errorJSON);
+      };
+    });
   },
 
-  create() {
+  create(item, callback, errorCallback) {
     const URL = BASE_URL;
-
-    var clientID = this.clientIDCreateInput.value;
-    this.clientIDCreateInput.value = '';
-    var accountID = this.accountIDCreateInput.value;
-    this.accountIDCreateInput.value = '';
-    var balance = this.balanceCreateInput.value;
-    this.balanceCreateInput.value = '';
 
     fetch(URL, {
       method: 'POST',
@@ -28,24 +30,26 @@ const fetchService = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        'clientID': clientID,
-        'accountID': accountID,
-        'balance': balance
+        'clientID': item.clientID,
+        'accountID': item.accountID,
+        'balance': item.balance
       })
     })
-      .then(response => response.json())
-      .then((json) => {
-        console.log(JSON.stringify(json));
-        this.getAll();
-        this.getDetails();
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    .then((response) => {
+      if (typeof callback === 'function') {
+        callback(response.json());
+      };
+    })
+    .catch((error) => {
+      if (typeof errorCallback === 'function') {
+        errorCallback(error.message);
+      };
+    });
   },
 
-  update(balance) {
-    const URL = BASE_URL
+  update(item, callback, errorCallback) {
+    const URL = BASE_URL;
+
     fetch(URL, {
       method: 'PUT',
       headers: {
@@ -53,26 +57,29 @@ const fetchService = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        'clientID': this.state.detailsItem.clientID,
-        'accountID': this.state.detailsItem.accountID,
-        'balance': balance
+        'clientID': item.clientID,
+        'accountID': item.accountID,
+        'balance': item.balance
       })
     })
-      .then(response => response.json())
-      .then(json => {
-        console.log(JSON.stringify(json));
-        this.getAll();
-        this.getDetails();
-      })
-      .catch(function (error) {
-        console.log(error);
-      });
+    .then(response => response.json())
+    .then((responseJSON) => {
+      if (typeof callback === 'function') {
+        callback(responseJSON);
+      };
+    })
+    .catch((errorJSON) => {
+      if (typeof errorCallback === 'function') {
+        errorCallback(errorJSON);
+      };
+    });
   },
 
-  delete(item) {
+  delete(item, callback, errorCallback) {
     const URL = BASE_URL + '/delete'
       + '?clientid=' + item.clientID
       + '&accountid=' + item.accountID;
+
     fetch(URL, {
       method: 'DELETE',
       headers: {
@@ -80,41 +87,42 @@ const fetchService = {
         'Content-Type': 'application/json',
       }
     })
-      .then(response => response.json())
-      .then(json => {
-        console.log(JSON.stringify(json));
-        this.getAll();
-        this.getDetails();
-      })
-      .catch(function (error) {
-        console.log(error);
-      });
+    .then(response => response.json())
+    .then((responseJSON) => {
+      if (typeof callback === 'function') {
+        callback(responseJSON);
+      };
+    })
+    .catch((errorJSON) => {
+      if (typeof errorCallback === 'function') {
+        errorCallback(errorJSON);
+      };
+    });
   },
 
-  getDetails() {
-    var clientID = this.clientIDDetailsInput.value;
-    var accountID = this.accountIDDetailsInput.value;
-
+  getDetails(item, callback, errorCallback) {
     const URL = BASE_URL + '/getdetails'
-      + '?clientid=' + clientID
-      + '&accountid=' + accountID;
+      + '?clientid=' + item.clientID
+      + '&accountid=' + item.accountID;
 
-    fetch(URL).then(response => response.json())
-      .then((data) => {
-        this.setState({ detailsItem: data });
-        console.log(JSON.stringify(data));
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    fetch(URL)
+    .then(response => response.json())
+    .then((responseJSON) => {
+      if (typeof callback === 'function') {
+        callback(responseJSON);
+      };
+    })
+    .catch((errorJSON) => {
+      if (typeof errorCallback === 'function') {
+        errorCallback(errorJSON);
+      };
+    });
   }
 };
 
 function DetailsView(props) {
 
-  var balanceUpdateInput;
-
-  console.log(props.item);
+  var UpdateInputBalance;
 
   if (props.item != null) {
     return (
@@ -127,9 +135,20 @@ function DetailsView(props) {
         Account Description: {props.item.accountDescription} <br />
         Balance: {props.item.balance} <br />
 
-        <h3>Edit Balance:</h3>
-        Balance:<input type="text" ref={(element) => balanceUpdateInput = element} /><br />
-        <button onClick={() => props.update(balanceUpdateInput.value)}>Update</button>
+        <h3>Update Balance:</h3>
+        Balance:<input type="text" ref={(element) => UpdateInputBalance = element} /><br />
+        <button onClick={() => {
+            fetchService.update(
+              {
+                clientID: props.item.clientID,
+                accountID: props.item.accountID,
+                balance: UpdateInputBalance.value
+              },
+              props.updateCallback,
+              props.errorCallback,
+            );
+          }
+        }>update</button>
 
         <hr/>
 
@@ -150,159 +169,121 @@ class App extends React.Component {
       detailsItem: null
     };
 
-    this.getAll = this.getAll.bind(this);
-    this.create = this.create.bind(this);
-    this.update = this.update.bind(this);
-    this.delete = this.delete.bind(this);
-    this.getDetails = this.getDetails.bind(this);
-  }
+    this.getAllCallback = this.getAllCallback.bind(this);
+    this.createCallback = this.createCallback.bind(this);
+    this.updateCallback = this.updateCallback.bind(this);
+    this.deleteCallback = this.deleteCallback.bind(this);
+    this.getDetailsCallback = this.getDetailsCallback.bind(this);
+    this.clearDetailsItem = this.clearDetailsItem.bind(this);
+    this.errorCallback = this.errorCallback.bind(this);
+    this.refreshViewCallback = this.refreshViewCallback.bind(this);
+    
+  };
 
   componentDidMount() {
-    this.getAll();
-  }
+    fetchService.getAll(this.getAllCallback, this.errorCallback);
+  };
+
+  getAllCallback(responseJSON){
+    this.setState({ clientAccounts: responseJSON});
+  };
+
+  createCallback() {
+    this.createInputClientID.value = '';
+    this.createInputAccountID.value = '';
+    this.createInputBalance.value = '';
+    this.refreshViewCallback();
+  };
+
+  updateCallback() {
+    this.refreshViewCallback();
+  };
+
+  deleteCallback() {
+    this.refreshViewCallback();
+  };
+
+  getDetailsCallback(responseJSON) {
+    this.setState({ detailsItem: responseJSON});
+  };
+
+  clearDetailsItem() {
+    this.detailsInputClientID.value = '';
+    this.detailsInputAccountID.value = '';
+    this.setState({ detailsItem: null });
+  };
+
+  errorCallback(errorJSON) {
+    //alert(JSON.stringify(errorJSON));
+  };
+
+  refreshViewCallback() {
+    fetchService.getAll(this.getAllCallback, this.errorCallback);
+    fetchService.getDetails(this.state.detailsItem, this.getDetailsCallback, this.errorCallback);
+  };
 
   render() {
     return (
       <div>
 
-        <h2>Show Client Account Details/Update</h2>
-        Client ID:<input type="text" ref={(element) => this.clientIDDetailsInput = element} /><br />
-        Account ID:<input type="text" ref={(element) => this.accountIDDetailsInput = element} /><br />
-        <button onClick={this.getDetails}>Show/Update</button>
-        <DetailsView item={this.state.detailsItem} update={this.update}/>
+        <h2>Show Client Account Details</h2>
+        Client ID:<input type="text" ref={(element) => this.detailsInputClientID = element} /><br />
+        Account ID:<input type="text" ref={(element) => this.detailsInputAccountID = element} /><br />
+        <button onClick={() => {
+            fetchService.getDetails(
+              {
+                clientID: this.detailsInputClientID.value,
+                accountID: this.detailsInputAccountID.value
+              },
+              this.getDetailsCallback,
+              this.errorCallback,
+            );
+          }
+        }>Show</button>
+        <button onClick={this.clearDetailsItem}>Clear</button>
+        <DetailsView 
+          item={this.state.detailsItem} 
+          updateCallback={this.updateCallback}
+          errorCallback={this.errorCallback}
+        />
 
         <h2>Create New Client Account</h2>
-        Client ID:<input type="text" ref={(element) => this.clientIDCreateInput = element} /><br />
-        Account ID:<input type="text" ref={(element) => this.accountIDCreateInput = element} /><br />
-        Balance:<input type="text" ref={(element) => this.balanceCreateInput = element} /><br />
-        <button onClick={this.create}>Create</button>
+        Client ID:<input type="text" ref={(element) => this.createInputClientID = element} /><br />
+        Account ID:<input type="text" ref={(element) => this.createInputAccountID = element} /><br />
+        Balance:<input type="text" ref={(element) => this.createInputBalance = element} /><br />
+        <button onClick={() => {
+            fetchService.create(
+              {
+                clientID: this.createInputClientID.value,
+                accountID: this.createInputAccountID.value,
+                balance: this.createInputBalance.value
+              },
+              this.createCallback,
+              this.errorCallback,
+            );
+          }
+        }>Create</button>
         
         <h2>Client Accounts List</h2>
         <ul>
           {this.state.clientAccounts.map((item, index) => (
             <li key={index}>
               ClientID: {item.clientID}, AccountID: {item.accountID} , Balance: {item.balance}
-              <button onClick={(e) => this.delete(item)}>Show Details/Update</button>
-              <button onClick={(e) => this.delete(item)}>Delete</button>
+              <button onClick={() => {
+                  fetchService.delete(
+                    item,
+                    this.deleteCallback,
+                    this.errorCallback,
+                  );
+                }
+              }>delete</button>
             </li>
           ))}
         </ul>
 
       </div>
     )
-  }
-
-  getAll() {
-    const URL = BASE_URL;
-
-    fetch(URL).then(response => response.json())
-      .then((data) => {
-        this.setState({ clientAccounts: data });
-        console.log(JSON.stringify(data));
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }
-
-  create() {
-    const URL = BASE_URL;
-
-    var clientID = this.clientIDCreateInput.value;
-    this.clientIDCreateInput.value = '';
-    var accountID = this.accountIDCreateInput.value;
-    this.accountIDCreateInput.value = '';
-    var balance = this.balanceCreateInput.value;
-    this.balanceCreateInput.value = '';
-
-    fetch(URL, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        'clientID': clientID,
-        'accountID': accountID,
-        'balance': balance
-      })
-    })
-      .then(response => response.json())
-      .then((json) => {
-        console.log(JSON.stringify(json));
-        this.getAll();
-        this.getDetails();
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }
-
-  update(balance) {
-    const URL = BASE_URL
-    fetch(URL, {
-      method: 'PUT',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        'clientID': this.state.detailsItem.clientID,
-        'accountID': this.state.detailsItem.accountID,
-        'balance': balance
-      })
-    })
-      .then(response => response.json())
-      .then(json => {
-        console.log(JSON.stringify(json));
-        this.getAll();
-        this.getDetails();
-      })
-      .catch(function (error) {
-        console.log(error);
-    });
-  }
-
-  delete(item) {
-    const URL = BASE_URL + '/delete'
-      + '?clientid=' + item.clientID
-      + '&accountid=' + item.accountID;
-    fetch(URL, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      }
-    })
-      .then(response => response.json())
-      .then(json => {
-        console.log(JSON.stringify(json));
-        this.getAll();
-        this.getDetails();
-      })
-      .catch(function (error) {
-        console.log(error);
-      });
-  }
-
-  getDetails() {
-    var clientID = this.clientIDDetailsInput.value;
-    var accountID = this.accountIDDetailsInput.value;
-
-    const URL = BASE_URL + '/getdetails'
-    + '?clientid=' + clientID
-    + '&accountid=' + accountID;
-
-    fetch(URL).then(response => response.json())
-      .then((data) => {
-        this.setState({ detailsItem: data });
-        console.log(JSON.stringify(data));
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-
-  }
+  };
 }
 export default App;
 
